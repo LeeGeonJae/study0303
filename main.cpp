@@ -1,19 +1,19 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
 
-#include <iostream>
 #include <WinSock2.h>
-
-#pragma comment (lib, "ws2_32.lib")
+#include <iostream>
 
 using namespace std;
+
+#pragma comment(lib, "ws2_32.lib")
 
 int main()
 {
 	//read
-	FILE* fp = fopen("test.txt", "r");
+	FILE* fp = fopen("meat.jpg", "rb");
 
-	//socket bind list accept send fileread send
+	//socket bind list accept fileread send
 	fseek(fp, 0, SEEK_END);
 	int Size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
@@ -21,44 +21,49 @@ int main()
 	fread(Buffer, sizeof(char), Size, fp);
 	fclose(fp);
 
-	//socket connect recv filewrite
-	//write
-	FILE* ofp = fopen("test2.txt", "w");
-	fwrite(Buffer, sizeof(char), Size, ofp);
-	fclose(ofp);
 
-	cout << Buffer << endl;
 
-	delete Buffer;
+	//윈속 초기화
+	WSADATA wsaData;
+	WSAStartup(MAKEWORD(2, 2), &wsaData);
 
-	/*WSAData wsaData;
-
-	WSAStartup(MAKEWORD(2, 2), 0);
-
+	//소켓 생성
 	SOCKET ServerSocket;
 	ServerSocket = socket(AF_INET, SOCK_STREAM, 0);
 
+	//서버 설정 
 	SOCKADDR_IN ServerAddr;
 	memset(&ServerAddr, 0, sizeof(ServerAddr));
-	ServerAddr.sin_family = AF_INET;
-	ServerAddr.sin_port = htons(50000);
-	ServerAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	ServerAddr.sin_family = PF_INET;
+	ServerAddr.sin_port = htons(1234);
+	ServerAddr.sin_addr.s_addr = INADDR_ANY;
 
+	//바인딩
 	bind(ServerSocket, (SOCKADDR*)&ServerAddr, sizeof(ServerAddr));
 
+	//listen
 	listen(ServerSocket, 0);
 
-	SOCKADDR_IN ClientAddr;
-	int ClientAddrSize = sizeof(ClientAddr);
-	SOCKET ClientSocket = 0;
-	ClientSocket = accept(ServerSocket, (SOCKADDR*)&ClientAddr, &ClientAddrSize);
+	while (1)
+	{
+		//새로 생기는 클라이언트 연결 정보
+		SOCKADDR_IN ClientAddr;
+		memset(&ClientAddr, 0, sizeof(ClientAddr));
+		int ClientAddrLength = sizeof(ClientAddr);
 
-	
+		//accept
+		SOCKET ClientSocket = accept(ServerSocket, (SOCKADDR*)&ClientAddr, &ClientAddrLength);
 
-	closesocket(ClientSocket);
+		//client에 전송
+		send(ClientSocket, Buffer, Size, 0);
+
+		closesocket(ClientSocket);
+	}
+
 	closesocket(ServerSocket);
 
-	WSACleanup();*/
+	delete[] Buffer;
+	WSACleanup();
 
 	return 0;
 }
