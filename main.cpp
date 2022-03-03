@@ -3,6 +3,7 @@
 
 #include <WinSock2.h>
 #include <iostream>
+#include <string>
 
 using namespace std;
 
@@ -10,19 +11,6 @@ using namespace std;
 
 int main()
 {
-	//read
-	FILE* fp = fopen("meat.jpg", "rb");
-
-	//socket bind list accept fileread send
-	fseek(fp, 0, SEEK_END);
-	int Size = ftell(fp);
-	fseek(fp, 0, SEEK_SET);
-	char* Buffer = new char[Size + 1];
-	fread(Buffer, sizeof(char), Size, fp);
-	fclose(fp);
-
-
-
 	//윈속 초기화
 	WSADATA wsaData;
 	WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -54,15 +42,42 @@ int main()
 		//accept
 		SOCKET ClientSocket = accept(ServerSocket, (SOCKADDR*)&ClientAddr, &ClientAddrLength);
 
+		//클라이언트의 명령 수신
+		char Buffer[2049] = { 0, };
+		memset(Buffer, 0, sizeof(Buffer));
+		string Packet;
+		int recvLength = recv(ClientSocket, Buffer, 2048, 0);
+
+		if (recvLength < 0)
+		{
+			cout << "error : " << GetLastError() << endl;
+			closesocket(ClientSocket);
+			break;
+		}
+
+		Packet = Buffer;
+		//get filename
+		string Command = Packet.substr(0, 3);
+		string Filename = Packet.substr(4, Packet.length() - 4);
+
+		//read
+		FILE* fp = fopen(Filename.c_str(), "rb");
+
+		size_t readDataLength = fread(Buffer, sizeof(char), 2048, fp);
+		while (readDataLength != 0)
+		{
+			send(ClientSocket, Buffer, readDataLength, 0);
+			readDataLength = fread(Buffer, sizeof(char), 2048, fp);
+		}
+		fclose(fp);
+
 		//client에 전송
-		send(ClientSocket, Buffer, Size, 0);
 
 		closesocket(ClientSocket);
 	}
 
 	closesocket(ServerSocket);
 
-	delete[] Buffer;
 	WSACleanup();
 
 	return 0;
